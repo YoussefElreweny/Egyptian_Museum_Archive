@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-sand-100 text-sand-900 antialiased;
+  }
+
+  /* Arabic needs a little more leading than the Latin default. */
+  html.font-arabic body {
+    font-family: theme('fontFamily.arabic');
+    line-height: 1.85;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-sand-100;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-sand-300;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-sand-400;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-lapis-500 ring-offset-2 ring-offset-sand-50;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-sand-200 bg-white shadow-card transition duration-200;
+  }
+
+  .card-interactive {
+    @apply card cursor-pointer hover:-translate-y-0.5 hover:border-gold-400 hover:shadow-card-hover;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium
+           transition disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply btn bg-lapis-700 text-white hover:bg-lapis-800 active:bg-lapis-900;
+  }
+
+  .btn-secondary {
+    @apply btn border border-sand-300 bg-white text-sand-800 hover:bg-sand-50 active:bg-sand-100;
+  }
+
+  .btn-danger {
+    @apply btn border border-red-300 bg-white text-red-700 hover:bg-red-50 active:bg-red-100;
+  }
+
+  .btn-ghost {
+    @apply btn text-sand-700 hover:bg-sand-200/70;
+  }
+
+  .input {
+    @apply w-full rounded-lg border border-sand-300 bg-white px-3 py-2 text-sm text-sand-900
+           placeholder:text-sand-400 focus:border-lapis-500 focus:outline-none
+           focus:ring-1 focus:ring-lapis-500;
+  }
+
+  .label {
+    @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-sand-600;
+  }
+
+  .chip {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    @apply bg-white;
+  }
+  .card {
+    border-color: #ddd;
+    box-shadow: none;
+  }
+}

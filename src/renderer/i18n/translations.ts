@@ -1,0 +1,167 @@
+/**
+ * Interface strings. Every key carries both languages side by side so a
+ * missing translation is impossible to miss when editing.
+ */
+export const TRANSLATIONS = {
+  'app.title': { en: 'Egyptian Museum Archive', ar: 'أرشيف المتحف المصري' },
+  'app.subtitle': { en: 'Archive Department — Tahrir', ar: 'قسم الأرشيف — التحرير' },
+  'app.museum': { en: 'The Egyptian Museum, Cairo', ar: 'المتحف المصري بالقاهرة' },
+
+  'nav.home': { en: 'Home', ar: 'الرئيسية' },
+  'nav.back': { en: 'Back', ar: 'رجوع' },
+  'nav.categories': { en: 'Categories', ar: 'الفئات' },
+  'nav.search': { en: 'Search', ar: 'بحث' },
+  'nav.searchPlaceholder': {
+    en: 'Search the whole archive…',
+    ar: 'ابحث في الأرشيف كاملاً…',
+  },
+
+  'home.heading': { en: 'Archive Categories', ar: 'فئات الأرشيف' },
+  'home.intro': {
+    en: 'Seven categories of archival material. Select a category to browse its material types.',
+    ar: 'سبع فئات من المواد الأرشيفية. اختر فئة لتصفح أنواع موادها.',
+  },
+  'home.stats.items': { en: 'Records', ar: 'السجلات' },
+  'home.stats.categories': { en: 'Categories', ar: 'الفئات' },
+  'home.stats.types': { en: 'Material Types', ar: 'أنواع المواد' },
+  'home.stats.photos': { en: 'Photographs', ar: 'الصور' },
+  'home.recent': { en: 'Recently Updated', ar: 'آخر التحديثات' },
+
+  'category.types': { en: 'Material Types', ar: 'أنواع المواد' },
+  'category.typeCount': { en: 'types', ar: 'نوع' },
+  'category.itemCount': { en: 'records', ar: 'سجل' },
+  'category.example': { en: 'Example', ar: 'مثال' },
+  'category.intro': {
+    en: 'Select a material type to view its catalogued records.',
+    ar: 'اختر نوع المادة لعرض السجلات المفهرسة.',
+  },
+
+  'type.records': { en: 'Records', ar: 'السجلات' },
+  'type.intro': {
+    en: 'Select a record number to open its full catalogue entry.',
+    ar: 'اختر رقم السجل لفتح بطاقته التفصيلية.',
+  },
+
+  'table.no': { en: '#', ar: '#' },
+  'table.accession': { en: 'Accession No.', ar: 'رقم القيد' },
+  'table.title': { en: 'Title', ar: 'العنوان' },
+  'table.date': { en: 'Date', ar: 'التاريخ' },
+  'table.period': { en: 'Period', ar: 'الحقبة' },
+  'table.condition': { en: 'Condition', ar: 'الحالة' },
+  'table.location': { en: 'Location', ar: 'الموقع' },
+  'table.photo': { en: 'Photo', ar: 'صورة' },
+  'table.empty': { en: 'No records yet', ar: 'لا توجد سجلات بعد' },
+  'table.emptyHint': {
+    en: 'Add the first record for this material type.',
+    ar: 'أضف أول سجل لهذا النوع من المواد.',
+  },
+  'table.showing': { en: 'Showing', ar: 'عرض' },
+  'table.of': { en: 'of', ar: 'من' },
+  'table.sortBy': { en: 'Sort by', ar: 'ترتيب حسب' },
+  'table.filter': { en: 'Filter', ar: 'تصفية' },
+  'table.all': { en: 'All', ar: 'الكل' },
+
+  'sort.accession': { en: 'Accession No.', ar: 'رقم القيد' },
+  'sort.title': { en: 'Title', ar: 'العنوان' },
+  'sort.year': { en: 'Year', ar: 'السنة' },
+  'sort.updated': { en: 'Last updated', ar: 'آخر تحديث' },
+
+  'item.profile': { en: 'Catalogue Record', ar: 'بطاقة السجل' },
+  'item.identification': { en: 'Identification', ar: 'بيانات التعريف' },
+  'item.description': { en: 'Description', ar: 'الوصف' },
+  'item.physical': { en: 'Physical Details', ar: 'البيانات المادية' },
+  'item.provenance': { en: 'Provenance and Storage', ar: 'المصدر والحفظ' },
+  'item.administrative': { en: 'Administrative', ar: 'بيانات إدارية' },
+  'item.notes': { en: 'Notes', ar: 'ملاحظات' },
+  'item.photos': { en: 'Photographs', ar: 'الصور' },
+  'item.noPhoto': { en: 'No photograph', ar: 'لا توجد صورة' },
+  'item.addPhoto': { en: 'Add photographs', ar: 'إضافة صور' },
+  'item.setPrimary': { en: 'Set as main', ar: 'تعيين كصورة رئيسية' },
+  'item.removePhoto': { en: 'Remove photograph', ar: 'حذف الصورة' },
+  'item.primary': { en: 'Main', ar: 'رئيسية' },
+
+  'field.accessionNo': { en: 'Accession Number', ar: 'رقم القيد' },
+  'field.title': { en: 'Title', ar: 'العنوان' },
+  'field.description': { en: 'Description', ar: 'الوصف' },
+  'field.category': { en: 'Category', ar: 'الفئة' },
+  'field.type': { en: 'Material Type', ar: 'نوع المادة' },
+  'field.creator': { en: 'Creator / Issuing Body', ar: 'المنشئ / الجهة المصدرة' },
+  'field.origin': { en: 'Place of Origin', ar: 'مكان المنشأ' },
+  'field.date': { en: 'Date', ar: 'التاريخ' },
+  'field.year': { en: 'Year', ar: 'السنة' },
+  'field.period': { en: 'Historical Period', ar: 'الحقبة التاريخية' },
+  'field.language': { en: 'Language', ar: 'اللغة' },
+  'field.condition': { en: 'Condition', ar: 'حالة الحفظ' },
+  'field.dimensions': { en: 'Dimensions / Extent', ar: 'الأبعاد / الحجم' },
+  'field.material': { en: 'Material and Technique', ar: 'المادة والتقنية' },
+  'field.quantity': { en: 'Quantity', ar: 'العدد' },
+  'field.location': { en: 'Storage Location', ar: 'مكان الحفظ' },
+  'field.acquisition': { en: 'Acquisition Method', ar: 'طريقة الاقتناء' },
+  'field.acquisitionDate': { en: 'Acquisition Date', ar: 'تاريخ الاقتناء' },
+  'field.notes': { en: 'Notes', ar: 'ملاحظات' },
+  'field.createdAt': { en: 'Record created', ar: 'أُنشئ السجل' },
+  'field.updatedAt': { en: 'Last updated', ar: 'آخر تحديث' },
+  'field.english': { en: 'English', ar: 'بالإنجليزية' },
+  'field.arabic': { en: 'Arabic', ar: 'بالعربية' },
+  'field.autoGenerated': { en: 'Generated automatically if left empty', ar: 'يُولَّد تلقائياً إذا تُرك فارغاً' },
+
+  'condition.excellent': { en: 'Excellent', ar: 'ممتازة' },
+  'condition.good': { en: 'Good', ar: 'جيدة' },
+  'condition.fair': { en: 'Fair', ar: 'مقبولة' },
+  'condition.poor': { en: 'Poor', ar: 'ضعيفة' },
+  'condition.critical': { en: 'Critical', ar: 'حرجة' },
+
+  'action.add': { en: 'Add Record', ar: 'إضافة سجل' },
+  'action.edit': { en: 'Edit', ar: 'تعديل' },
+  'action.delete': { en: 'Delete', ar: 'حذف' },
+  'action.save': { en: 'Save', ar: 'حفظ' },
+  'action.cancel': { en: 'Cancel', ar: 'إلغاء' },
+  'action.close': { en: 'Close', ar: 'إغلاق' },
+  'action.export': { en: 'Export CSV', ar: 'تصدير CSV' },
+  'action.backup': { en: 'Back up database', ar: 'نسخ احتياطي' },
+  'action.print': { en: 'Print', ar: 'طباعة' },
+  'action.dataFolder': { en: 'Data folder', ar: 'مجلد البيانات' },
+
+  'confirm.deleteTitle': { en: 'Delete this record?', ar: 'حذف هذا السجل؟' },
+  'confirm.deleteBody': {
+    en: 'The record and its photographs will be permanently removed. This cannot be undone.',
+    ar: 'سيتم حذف السجل وصوره نهائياً، ولا يمكن التراجع عن ذلك.',
+  },
+  'confirm.deletePhotoTitle': { en: 'Remove this photograph?', ar: 'حذف هذه الصورة؟' },
+  'confirm.deletePhotoBody': {
+    en: 'The image file will be deleted from the archive folder.',
+    ar: 'سيتم حذف ملف الصورة من مجلد الأرشيف.',
+  },
+
+  'form.addTitle': { en: 'New Record', ar: 'سجل جديد' },
+  'form.editTitle': { en: 'Edit Record', ar: 'تعديل السجل' },
+  'form.required': { en: 'Required', ar: 'مطلوب' },
+  'form.titleRequired': {
+    en: 'Enter a title in English or Arabic.',
+    ar: 'أدخل عنواناً بالإنجليزية أو بالعربية.',
+  },
+  'form.typeRequired': { en: 'Select a material type.', ar: 'اختر نوع المادة.' },
+
+  'search.heading': { en: 'Search Results', ar: 'نتائج البحث' },
+  'search.for': { en: 'Results for', ar: 'نتائج البحث عن' },
+  'search.none': { en: 'No records matched', ar: 'لا توجد سجلات مطابقة' },
+  'search.noneHint': {
+    en: 'Try a different word, or search in the other language.',
+    ar: 'جرّب كلمة أخرى، أو ابحث باللغة الأخرى.',
+  },
+
+  'toast.saved': { en: 'Record saved', ar: 'تم حفظ السجل' },
+  'toast.deleted': { en: 'Record deleted', ar: 'تم حذف السجل' },
+  'toast.exported': { en: 'Exported to', ar: 'تم التصدير إلى' },
+  'toast.backedUp': { en: 'Backup saved to', ar: 'تم حفظ النسخة الاحتياطية في' },
+  'toast.photosAdded': { en: 'Photographs added', ar: 'تمت إضافة الصور' },
+  'toast.error': { en: 'Something went wrong', ar: 'حدث خطأ' },
+
+  'common.loading': { en: 'Loading…', ar: 'جارٍ التحميل…' },
+  'common.notFound': { en: 'Not found', ar: 'غير موجود' },
+  'common.empty': { en: '—', ar: '—' },
+  'common.language': { en: 'العربية', ar: 'English' },
+  'common.version': { en: 'Version', ar: 'الإصدار' },
+} as const;
+
+export type TranslationKey = keyof typeof TRANSLATIONS;
