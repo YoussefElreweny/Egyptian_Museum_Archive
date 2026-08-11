@@ -124,20 +124,27 @@ npm test           # data-layer tests
 npm run build      # compile main, preload and renderer into dist/
 ```
 
-### Building the Windows installer
+### Packaging
 
-```bash
-npm run dist
-```
+`npm run dist` builds for whichever platform you are on. To be explicit:
 
-Produces `release/EgyptianMuseumArchive-Setup-1.0.0.exe`, an NSIS installer that
-lets the user choose the install directory and creates desktop and Start Menu
-shortcuts. `npm run dist:all` additionally builds macOS `.dmg` and Linux
-`.AppImage` targets.
+| Command | Output | Must run on |
+|---------|--------|-------------|
+| `npm run dist:win` | `release/EgyptianMuseumArchive-Setup-1.0.0.exe` | Windows |
+| `npm run dist:mac` | `release/Egyptian Museum Archive-1.0.0.dmg` | macOS |
+| `npm run dist:linux` | `release/Egyptian Museum Archive-1.0.0.AppImage` | Linux |
 
-Building the Windows installer must be done on Windows (or with Wine
-configured), since electron-builder needs the platform's native tooling to
-produce and sign the executable.
+Each target must be built on its own platform: electron-builder needs the
+platform's native tooling, and the app contains a native SQLite module that has
+to be compiled for the target.
+
+The Windows build is an NSIS installer that lets the user choose the install
+directory and creates desktop and Start Menu shortcuts.
+
+The macOS build is **unsigned** (`identity: null`), which is fine for testing
+but means Gatekeeper will refuse to open it on first launch. Right-click the
+app and choose *Open*, then confirm. Distributing it properly to other Macs
+would need an Apple Developer ID certificate and notarisation.
 
 ### Tests
 
