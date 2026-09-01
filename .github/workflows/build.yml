@@ -18,17 +18,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # macOS is the department's platform. Each architecture is built on a
-          # runner of that architecture: an arm64-only .dmg will not open on an
-          # Intel Mac, and cross-building it would mean cross-compiling the
-          # native SQLite module.
-          - os: macos-latest        # Apple Silicon (M1 and later)
-            target: dist:mac
-            artifact: macos-apple-silicon
-            pattern: 'release/*.dmg'
-          - os: macos-13            # Intel
-            target: dist:mac
-            artifact: macos-intel
+          # macOS is the department's platform, and both architectures are built
+          # from the one Apple Silicon runner. GitHub has retired its Intel
+          # macOS runners, so a job asking for macos-13 is never given a machine
+          # — it sits queued indefinitely rather than failing.
+          - os: macos-latest
+            target: dist:mac:all
+            artifact: macos-installers
             pattern: 'release/*.dmg'
           - os: windows-latest
             target: dist:win

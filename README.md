@@ -194,9 +194,13 @@ npm run build      # compile main, preload and renderer into dist/
 | `npm run dist:win` | `release/EgyptianMuseumArchive-Setup-1.0.0.exe` | Windows |
 | `npm run dist:linux` | `release/Egyptian Museum Archive-1.0.0.AppImage` | Linux |
 
-The department runs macOS. A `.dmg` is built for the architecture of the machine
-that builds it, and an Apple Silicon build will not open on an Intel Mac, so the
-release workflow builds both: `macos-latest` for arm64 and `macos-13` for x64.
+The department runs macOS. A `.dmg` runs only on the architecture it was built
+for — an Apple Silicon build will not open on an Intel Mac — so the release
+workflow builds both from the one Apple Silicon runner via `npm run dist:mac:all`.
+
+It does **not** use GitHub's `macos-13` Intel runners: those have been retired,
+and a job requesting one is never assigned a machine. It stays queued
+indefinitely instead of failing, which silently blocks the release job.
 
 Each target must be built on its own platform: electron-builder needs the
 platform's native tooling, and the app contains a native SQLite module that has
