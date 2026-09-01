@@ -5,7 +5,7 @@ import { TAXONOMY } from '../../shared/taxonomy';
  * Schema version. Bump when adding a migration below; `migrate()` replays
  * every migration whose version exceeds the database's current user_version.
  */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 const V1 = `
 CREATE TABLE IF NOT EXISTS categories (
@@ -192,9 +192,23 @@ END;
 INSERT INTO items_fts(items_fts) VALUES('rebuild');
 `;
 
+/**
+ * Adds the QR code slot. The department generates the codes in their own tool
+ * and attaches the resulting image to the record, so this stores a file name in
+ * the media folder — the same arrangement as photographs — rather than encoding
+ * anything itself.
+ *
+ * The column is not added to the full-text index: a file name is not something
+ * anyone would search for.
+ */
+const V3 = `
+ALTER TABLE items ADD COLUMN qr_file_name TEXT NOT NULL DEFAULT '';
+`;
+
 export const MIGRATIONS: { version: number; sql: string }[] = [
   { version: 1, sql: V1 },
   { version: 2, sql: V2 },
+  { version: 3, sql: V3 },
 ];
 
 export function migrate(db: Database.Database): void {

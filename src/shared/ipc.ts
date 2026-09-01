@@ -16,6 +16,9 @@ export const IPC = {
   photoDelete: 'photo:delete',
   photoSetPrimary: 'photo:setPrimary',
 
+  qrSet: 'qr:set',
+  qrClear: 'qr:clear',
+
   statsGet: 'stats:get',
   settingGet: 'setting:get',
   settingSet: 'setting:set',

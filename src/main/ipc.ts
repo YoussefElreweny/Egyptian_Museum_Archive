@@ -44,6 +44,7 @@ function itemsToCsv(rows: ArchiveItem[]): string {
   const headers = [
     'Accession No',
     'Previous No.',
+    'QR Code',
     'Title (EN)',
     'Title (AR)',
     'Category (EN)',
@@ -84,6 +85,7 @@ function itemsToCsv(rows: ArchiveItem[]): string {
       [
         r.accessionNo,
         r.previousNumbersText,
+        r.qrFileName ? 'Yes' : 'No',
         r.titleEn,
         r.titleAr,
         r.categoryNameEn,
@@ -182,6 +184,37 @@ export function registerIpcHandlers(): void {
 
   handle(IPC.photoSetPrimary, (photoId: number) => {
     repo().setPrimaryPhoto(photoId);
+    return true;
+  });
+
+  /* --- QR code --- */
+
+  // The department generates QR codes in their own tool; this copies the image
+  // they produced into the media folder and attaches it to the record.
+  handle(IPC.qrSet, async (itemId: number) => {
+    const window = BrowserWindow.getFocusedWindow();
+    const result = await dialog.showOpenDialog(window!, {
+      title: 'Select QR code image',
+      properties: ['openFile'],
+      filters: [{ name: 'Images', extensions: IMAGE_EXTENSIONS }],
+    });
+
+    if (result.canceled || result.filePaths.length === 0) return null;
+
+    const sourcePath = result.filePaths[0];
+    const ext = extname(sourcePath).toLowerCase() || '.png';
+    const fileName = `qr-${randomUUID()}${ext}`;
+    copyFileSync(sourcePath, join(getPaths().mediaDir, fileName));
+
+    const replaced = repo().setQrImage(itemId, fileName);
+    if (replaced) removeMedia(replaced);
+
+    return fileName;
+  });
+
+  handle(IPC.qrClear, (itemId: number) => {
+    const orphaned = repo().clearQrImage(itemId);
+    if (orphaned) removeMedia(orphaned);
     return true;
   });
 

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
 import { ItemForm } from '../components/ItemForm';
 import { PhotoGallery } from '../components/PhotoGallery';
+import { QrCard } from '../components/QrCard';
 import { ConditionBadge, ConfirmDialog, EmptyState, Field, SectionCard, Spinner } from '../components/ui';
 import { useToast } from '../components/Toast';
 import { useLang } from '../i18n/LanguageContext';
@@ -167,6 +168,8 @@ export default function ItemPage() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
         <div className="space-y-6">
           <PhotoGallery item={item} onChanged={load} />
+
+          <QrCard item={item} onChanged={load} />
 
           <SectionCard title={t('item.identification')}>
             <dl className="space-y-4">

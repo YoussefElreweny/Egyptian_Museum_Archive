@@ -120,6 +120,7 @@ function toItem(r: Row): ArchiveItem {
     notesAr: str(r.notes_ar),
     createdAt: str(r.created_at),
     updatedAt: str(r.updated_at),
+    qrFileName: str(r.qr_file_name),
     primaryPhoto: r.primary_photo == null ? null : String(r.primary_photo),
     typeNameEn: r.type_name_en == null ? undefined : String(r.type_name_en),
     typeNameAr: r.type_name_ar == null ? undefined : String(r.type_name_ar),
@@ -362,11 +363,47 @@ export class ArchiveRepository {
     return item;
   }
 
-  /** Returns the photo file names that the caller should unlink from disk. */
+  /** Returns the media file names that the caller should unlink from disk. */
   deleteItem(id: number): string[] {
-    const photos = this.listPhotos(id).map((p) => p.fileName);
+    const files = this.listPhotos(id).map((p) => p.fileName);
+
+    const item = this.db.prepare('SELECT qr_file_name FROM items WHERE id = ?').get(id) as
+      | { qr_file_name: string }
+      | undefined;
+    if (item?.qr_file_name) files.push(item.qr_file_name);
+
     this.db.prepare('DELETE FROM items WHERE id = ?').run(id);
-    return photos;
+    return files;
+  }
+
+  /* --- QR code --- */
+
+  /**
+   * Attach a QR image, returning the file name it replaced so the caller can
+   * remove the old image from the media folder.
+   */
+  setQrImage(itemId: number, fileName: string): string {
+    const previous = this.qrImage(itemId);
+    this.db
+      .prepare("UPDATE items SET qr_file_name = ?, updated_at = datetime('now') WHERE id = ?")
+      .run(fileName, itemId);
+    return previous;
+  }
+
+  /** Detach the QR image, returning the file name that is now orphaned. */
+  clearQrImage(itemId: number): string {
+    const previous = this.qrImage(itemId);
+    this.db
+      .prepare("UPDATE items SET qr_file_name = '', updated_at = datetime('now') WHERE id = ?")
+      .run(itemId);
+    return previous;
+  }
+
+  qrImage(itemId: number): string {
+    const row = this.db.prepare('SELECT qr_file_name FROM items WHERE id = ?').get(itemId) as
+      | { qr_file_name: string }
+      | undefined;
+    return row?.qr_file_name ?? '';
   }
 
   /* --- Previous numbers --- */

@@ -49,6 +49,11 @@ const api = {
     /** Build a renderable URL for a stored media file name. */
     url: (fileName: string) => `archive-media://media/${encodeURIComponent(fileName)}`,
   },
+  qr: {
+    /** Opens a picker and attaches the chosen image; resolves null if cancelled. */
+    set: (itemId: number) => call<string | null>(IPC.qrSet, itemId),
+    clear: (itemId: number) => call<boolean>(IPC.qrClear, itemId),
+  },
   stats: () => call<ArchiveStats>(IPC.statsGet),
   settings: {
     get: (key: string) => call<string | null>(IPC.settingGet, key),

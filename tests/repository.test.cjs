@@ -674,3 +674,134 @@ test('migrating an already-current database changes nothing', () => {
     cleanup(ctx);
   }
 });
+
+/* ------------------------------------------------------------------ *
+ * QR code
+ * ------------------------------------------------------------------ */
+
+test('a record starts with no QR code and can have one attached', () => {
+  const ctx = freshDb();
+  try {
+    const type = ctx.repo.getType('artifacts');
+    const item = ctx.repo.createItem(baseItem(type.id));
+    assert.equal(item.qrFileName, '');
+
+    const replaced = ctx.repo.setQrImage(item.id, 'qr-abc.png');
+    assert.equal(replaced, '', 'nothing was replaced');
+    assert.equal(ctx.repo.getItem(item.id).qrFileName, 'qr-abc.png');
+  } finally {
+    cleanup(ctx);
+  }
+});
+
+test('replacing a QR code reports the old file so it can be deleted', () => {
+  const ctx = freshDb();
+  try {
+    const type = ctx.repo.getType('artifacts');
+    const item = ctx.repo.createItem(baseItem(type.id));
+
+    ctx.repo.setQrImage(item.id, 'qr-first.png');
+    const replaced = ctx.repo.setQrImage(item.id, 'qr-second.png');
+
+    assert.equal(replaced, 'qr-first.png', 'the caller can unlink the old image');
+    assert.equal(ctx.repo.getItem(item.id).qrFileName, 'qr-second.png');
+  } finally {
+    cleanup(ctx);
+  }
+});
+
+test('clearing a QR code reports the orphaned file and leaves the record intact', () => {
+  const ctx = freshDb();
+  try {
+    const type = ctx.repo.getType('artifacts');
+    const item = ctx.repo.createItem(baseItem(type.id, { titleEn: 'Pottery vessel' }));
+    ctx.repo.setQrImage(item.id, 'qr-abc.png');
+
+    const orphaned = ctx.repo.clearQrImage(item.id);
+    assert.equal(orphaned, 'qr-abc.png');
+
+    const after = ctx.repo.getItem(item.id);
+    assert.equal(after.qrFileName, '');
+    assert.equal(after.titleEn, 'Pottery vessel', 'the record itself is untouched');
+  } finally {
+    cleanup(ctx);
+  }
+});
+
+test('deleting a record orphans its QR code alongside its photographs', () => {
+  const ctx = freshDb();
+  try {
+    const type = ctx.repo.getType('artifacts');
+    const item = ctx.repo.createItem(baseItem(type.id));
+    ctx.repo.addPhoto(item.id, 'photo.jpg');
+    ctx.repo.setQrImage(item.id, 'qr-abc.png');
+
+    const orphaned = ctx.repo.deleteItem(item.id);
+    assert.deepEqual(orphaned.sort(), ['photo.jpg', 'qr-abc.png']);
+  } finally {
+    cleanup(ctx);
+  }
+});
+
+test('editing a record does not disturb its QR code', () => {
+  const ctx = freshDb();
+  try {
+    const type = ctx.repo.getType('artifacts');
+    const item = ctx.repo.createItem(baseItem(type.id));
+    ctx.repo.setQrImage(item.id, 'qr-abc.png');
+
+    // The QR image is attached separately, so it is not part of the form
+    // payload and must survive a save that knows nothing about it.
+    ctx.repo.updateItem(
+      item.id,
+      baseItem(type.id, { accessionNo: item.accessionNo, titleEn: 'Renamed' }),
+    );
+
+    assert.equal(ctx.repo.getItem(item.id).qrFileName, 'qr-abc.png');
+  } finally {
+    cleanup(ctx);
+  }
+});
+
+test('upgrading a v2 database keeps its data and gains the QR column', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'archive-v2-'));
+  const db = new Database(join(dir, 'test.db'));
+
+  try {
+    // A database as the previous release left it: schema 2, with real data.
+    db.pragma('journal_mode = WAL');
+    db.pragma('foreign_keys = ON');
+    db.exec(MIGRATIONS[0].sql);
+    db.exec(MIGRATIONS[1].sql);
+    db.pragma('user_version = 2');
+    seedTaxonomy(db);
+
+    const before = new ArchiveRepository(db);
+    const type = before.getType('artifacts');
+    const kept = before.createItem(
+      baseItem(type.id, {
+        titleEn: 'Catalogued under v2',
+        previousNumbers: [{ value: 'JE-38392', note: 'old register' }],
+      }),
+    );
+    before.addPhoto(kept.id, 'existing.jpg');
+
+    migrate(db);
+    assert.equal(db.pragma('user_version', { simple: true }), SCHEMA_VERSION);
+
+    const after = new ArchiveRepository(db);
+    const item = after.getItem(kept.id);
+
+    assert.equal(item.titleEn, 'Catalogued under v2');
+    assert.equal(item.photos.length, 1);
+    assert.equal(item.previousNumberRows.length, 1, 'previous numbers survived');
+    assert.equal(item.qrFileName, '', 'the new column defaults to empty');
+    assert.equal(after.listItems({ search: 'JE-38392' }).total, 1, 'search still works');
+
+    after.setQrImage(kept.id, 'qr-new.png');
+    assert.equal(after.getItem(kept.id).qrFileName, 'qr-new.png');
+  } finally {
+    db.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

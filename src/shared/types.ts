@@ -106,6 +106,12 @@ export interface ArchiveItem {
   notesAr: string;
   createdAt: string;
   updatedAt: string;
+  /**
+   * File name of the QR code image in the media folder, or '' when none is
+   * attached. The department generates these externally; the app only stores
+   * and displays the image.
+   */
+  qrFileName: string;
   photos?: ItemPhoto[];
   /** The stored rows, with ids; present on getItem, absent on list queries. */
   previousNumberRows?: PreviousNumber[];
@@ -129,6 +135,7 @@ export type ItemInput = Omit<
   | 'createdAt'
   | 'updatedAt'
   | 'photos'
+  | 'qrFileName'
   | 'previousNumberRows'
   | 'previousNumbersText'
   | 'primaryPhoto'

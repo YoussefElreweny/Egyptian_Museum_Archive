@@ -80,6 +80,23 @@ export const TRANSLATIONS = {
   'item.removePhoto': { en: 'Remove photograph', ar: 'حذف الصورة' },
   'item.primary': { en: 'Main', ar: 'رئيسية' },
 
+  'qr.title': { en: 'QR Code', ar: 'رمز الاستجابة السريعة' },
+  'qr.none': { en: 'No QR code attached', ar: 'لا يوجد رمز مرفق' },
+  'qr.add': { en: 'Attach QR code', ar: 'إرفاق رمز' },
+  'qr.replace': { en: 'Replace', ar: 'استبدال' },
+  'qr.remove': { en: 'Remove', ar: 'حذف' },
+  'qr.hint': {
+    en: 'Attach the QR code image generated for this record.',
+    ar: 'أرفق صورة رمز الاستجابة السريعة الخاص بهذا السجل.',
+  },
+  'qr.attached': { en: 'QR code attached', ar: 'تم إرفاق الرمز' },
+  'qr.removed': { en: 'QR code removed', ar: 'تم حذف الرمز' },
+  'confirm.removeQrTitle': { en: 'Remove this QR code?', ar: 'حذف هذا الرمز؟' },
+  'confirm.removeQrBody': {
+    en: 'The image will be deleted from the archive folder. The record itself is not affected.',
+    ar: 'سيتم حذف الصورة من مجلد الأرشيف، ولن يتأثر السجل نفسه.',
+  },
+
   'field.accessionNo': { en: 'Accession Number', ar: 'رقم القيد' },
   'field.title': { en: 'Title', ar: 'العنوان' },
   'field.description': { en: 'Description', ar: 'الوصف' },
