@@ -16,10 +16,10 @@
     "build": "npm run build:main && npm run build:renderer",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.main.json --noEmit",
     "test": "npm run build:main && cross-env ELECTRON_RUN_AS_NODE=1 electron --test tests/",
-    "dist": "npm run build && electron-builder",
-    "dist:mac": "npm run build && electron-builder --mac",
-    "dist:win": "npm run build && electron-builder --win --x64",
-    "dist:linux": "npm run build && electron-builder --linux",
+    "dist": "npm run build && electron-builder --publish never",
+    "dist:mac": "npm run build && electron-builder --mac --publish never",
+    "dist:win": "npm run build && electron-builder --win --x64 --publish never",
+    "dist:linux": "npm run build && electron-builder --linux --publish never",
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
@@ -57,21 +57,17 @@
       "dist/**/*",
       "package.json"
     ],
-    "extraResources": [
-      {
-        "from": "resources",
-        "to": ".",
-        "filter": ["**/*"]
-      }
-    ],
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
-      "artifactName": "EgyptianMuseumArchive-Setup-${version}.${ext}"
+      "artifactName": "EgyptianMuseumArchive-Setup-${version}.${ext}",
+      "icon": "build/icon.ico"
     },
     "nsis": {
       "oneClick": false,
@@ -81,13 +77,19 @@
       "shortcutName": "Egyptian Museum Archive"
     },
     "mac": {
-      "target": ["dmg"],
+      "target": [
+        "dmg"
+      ],
       "category": "public.app-category.productivity",
-      "identity": null
+      "identity": null,
+      "icon": "build/icon.png"
     },
     "linux": {
-      "target": ["AppImage"],
-      "category": "Office"
+      "target": [
+        "AppImage"
+      ],
+      "category": "Office",
+      "icon": "build/icons"
     }
   }
 }

@@ -103,6 +103,35 @@ request that tries to escape it with `..` gets a 403.
 given a prefix wildcard, so characters with meaning in FTS syntax (`"`, `*`,
 `NEAR`, `-`) are treated as literal text and can't produce a syntax error.
 
+## Releasing
+
+`.github/workflows/build.yml` builds the Windows and macOS installers on GitHub's
+own runners, so no local Windows machine is needed. Each run typechecks, runs the
+test suite, and only then packages.
+
+To cut a release:
+
+```bash
+npm version 1.1.0 -m 'Release %s'   # bumps package.json and tags
+git push --follow-tags
+```
+
+The tag triggers the workflow; when it finishes, the installers are attached to
+the GitHub Release for that tag, ready to hand to the department.
+
+To test a build without releasing, run the workflow manually from the repository's
+**Actions** tab — the installers appear as downloadable artifacts on the run,
+kept for 30 days, and no release is created.
+
+### Code signing
+
+Neither installer is code-signed. Windows SmartScreen will warn on first run
+("Windows protected your PC" — *More info* → *Run anyway*), and macOS requires
+right-click → *Open*. Signing needs paid certificates: an Authenticode
+certificate for Windows, an Apple Developer ID plus notarisation for macOS. If
+the museum's IT policy blocks unsigned installers, that is the fix. Both are
+configured through electron-builder once the certificates exist.
+
 ## Updating an installed copy
 
 The database lives outside the application, so installing a newer build over an
@@ -157,7 +186,9 @@ npm run build      # compile main, preload and renderer into dist/
 
 Each target must be built on its own platform: electron-builder needs the
 platform's native tooling, and the app contains a native SQLite module that has
-to be compiled for the target.
+to be compiled for the target. If you do not have a machine for a given
+platform, use the release workflow below — GitHub builds each one on its own
+runner.
 
 The Windows build is an NSIS installer that lets the user choose the install
 directory and creates desktop and Start Menu shortcuts.
