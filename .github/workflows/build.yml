@@ -18,14 +18,22 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # macOS is the department's platform. Each architecture is built on a
+          # runner of that architecture: an arm64-only .dmg will not open on an
+          # Intel Mac, and cross-building it would mean cross-compiling the
+          # native SQLite module.
+          - os: macos-latest        # Apple Silicon (M1 and later)
+            target: dist:mac
+            artifact: macos-apple-silicon
+            pattern: 'release/*.dmg'
+          - os: macos-13            # Intel
+            target: dist:mac
+            artifact: macos-intel
+            pattern: 'release/*.dmg'
           - os: windows-latest
             target: dist:win
             artifact: windows-installer
             pattern: 'release/*.exe'
-          - os: macos-latest
-            target: dist:mac
-            artifact: macos-installer
-            pattern: 'release/*.dmg'
 
     runs-on: ${{ matrix.os }}
 

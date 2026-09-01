@@ -125,12 +125,22 @@ kept for 30 days, and no release is created.
 
 ### Code signing
 
-Neither installer is code-signed. Windows SmartScreen will warn on first run
-("Windows protected your PC" — *More info* → *Run anyway*), and macOS requires
-right-click → *Open*. Signing needs paid certificates: an Authenticode
-certificate for Windows, an Apple Developer ID plus notarisation for macOS. If
-the museum's IT policy blocks unsigned installers, that is the fix. Both are
-configured through electron-builder once the certificates exist.
+The builds are not code-signed. On macOS this is more disruptive than on
+Windows: Gatekeeper blocks an unsigned, un-notarised application on first
+launch, and the person installing it has to approve it once through **System
+Settings → Privacy & Security → Open Anyway**. `docs/INSTALL-macOS.md` walks
+through that in English and Arabic and is meant to be sent along with the
+installer.
+
+Removing the warning entirely needs an **Apple Developer ID** (99 USD/year) plus
+notarisation — Apple's automated malware scan, after which the app opens with no
+warning at all. Once the certificate exists, electron-builder handles both:
+delete `identity: null` from the `mac` block in `package.json` and supply
+`CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and
+`APPLE_TEAM_ID` as repository secrets.
+
+The Windows equivalent is an Authenticode certificate, which silences the
+SmartScreen warning.
 
 ## Updating an installed copy
 
@@ -180,9 +190,13 @@ npm run build      # compile main, preload and renderer into dist/
 
 | Command | Output | Must run on |
 |---------|--------|-------------|
+| `npm run dist:mac` | `release/EgyptianMuseumArchive-1.0.0-<arch>.dmg` | macOS |
 | `npm run dist:win` | `release/EgyptianMuseumArchive-Setup-1.0.0.exe` | Windows |
-| `npm run dist:mac` | `release/Egyptian Museum Archive-1.0.0.dmg` | macOS |
 | `npm run dist:linux` | `release/Egyptian Museum Archive-1.0.0.AppImage` | Linux |
+
+The department runs macOS. A `.dmg` is built for the architecture of the machine
+that builds it, and an Apple Silicon build will not open on an Intel Mac, so the
+release workflow builds both: `macos-latest` for arm64 and `macos-13` for x64.
 
 Each target must be built on its own platform: electron-builder needs the
 platform's native tooling, and the app contains a native SQLite module that has

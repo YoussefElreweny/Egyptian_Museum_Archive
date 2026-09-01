@@ -82,7 +82,8 @@
       ],
       "category": "public.app-category.productivity",
       "identity": null,
-      "icon": "build/icon.png"
+      "icon": "build/icon.png",
+      "artifactName": "EgyptianMuseumArchive-${version}-${arch}.${ext}"
     },
     "linux": {
       "target": [
