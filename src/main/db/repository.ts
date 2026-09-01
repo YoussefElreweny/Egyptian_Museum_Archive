@@ -9,6 +9,8 @@ import type {
   ItemPhoto,
   ItemQuery,
   MaterialType,
+  PreviousNumber,
+  PreviousNumberInput,
 } from '../../shared/types';
 import { CATEGORY_CODES } from '../../shared/taxonomy';
 
@@ -61,11 +63,36 @@ function toPhoto(r: Row): ItemPhoto {
   };
 }
 
+function toPreviousNumber(r: Row): PreviousNumber {
+  return {
+    id: num(r.id),
+    itemId: num(r.item_id),
+    value: str(r.value),
+    note: str(r.note),
+    orderIndex: num(r.order_index),
+  };
+}
+
+/** Separator used in the denormalised `items.previous_numbers` column. */
+const PREV_SEPARATOR = '; ';
+
+/**
+ * Drop blank entries and collapse whitespace, so the form can submit empty rows
+ * freely and the stored list stays clean.
+ */
+export function normalisePreviousNumbers(input: PreviousNumberInput[]): PreviousNumberInput[] {
+  return (input ?? [])
+    .map((p) => ({ value: (p.value ?? '').trim(), note: (p.note ?? '').trim() }))
+    .filter((p) => p.value.length > 0);
+}
+
 function toItem(r: Row): ArchiveItem {
   return {
     id: num(r.id),
     typeId: num(r.type_id),
     accessionNo: str(r.accession_no),
+    previousNumbers: [],
+    previousNumbersText: str(r.previous_numbers),
     titleEn: str(r.title_en),
     titleAr: str(r.title_ar),
     descriptionEn: str(r.description_en),
@@ -264,15 +291,21 @@ export class ArchiveRepository {
   getItem(id: number): ArchiveItem | null {
     const row = this.db.prepare(`${ITEM_SELECT} WHERE i.id = ?`).get(id) as Row | undefined;
     if (!row) return null;
+
     const item = toItem(row);
     item.photos = this.listPhotos(id);
+    item.previousNumberRows = this.listPreviousNumbers(id);
+    item.previousNumbers = item.previousNumberRows.map((p) => ({ value: p.value, note: p.note }));
     return item;
   }
 
   createItem(input: ItemInput): ArchiveItem {
-    const accessionNo = input.accessionNo?.trim() || this.nextAccessionNo(input.typeId);
+    // The row and its previous numbers are written together, so a failure in
+    // either leaves no half-catalogued record behind.
+    const newId = this.db.transaction(() => {
+      const accessionNo = input.accessionNo?.trim() || this.nextAccessionNo(input.typeId);
 
-    const info = this.db
+      const info = this.db
       .prepare(
         `INSERT INTO items (
            type_id, accession_no, title_en, title_ar, description_en, description_ar,
@@ -290,11 +323,17 @@ export class ArchiveRepository {
       )
       .run(this.bindItem({ ...input, accessionNo }));
 
-    return this.getItem(Number(info.lastInsertRowid))!;
+      const id = Number(info.lastInsertRowid);
+      this.replacePreviousNumbers(id, input.previousNumbers);
+      return id;
+    })();
+
+    return this.getItem(newId)!;
   }
 
   updateItem(id: number, input: ItemInput): ArchiveItem {
-    this.db
+    this.db.transaction(() => {
+      this.db
       .prepare(
         `UPDATE items SET
            type_id = @typeId, accession_no = @accessionNo,
@@ -315,6 +354,9 @@ export class ArchiveRepository {
       )
       .run({ ...this.bindItem(input), id });
 
+      this.replacePreviousNumbers(id, input.previousNumbers);
+    })();
+
     const item = this.getItem(id);
     if (!item) throw new Error(`Item ${id} not found`);
     return item;
@@ -325,6 +367,42 @@ export class ArchiveRepository {
     const photos = this.listPhotos(id).map((p) => p.fileName);
     this.db.prepare('DELETE FROM items WHERE id = ?').run(id);
     return photos;
+  }
+
+  /* --- Previous numbers --- */
+
+  listPreviousNumbers(itemId: number): PreviousNumber[] {
+    const rows = this.db
+      .prepare(
+        `SELECT * FROM item_previous_numbers WHERE item_id = ?
+          ORDER BY order_index ASC, id ASC`,
+      )
+      .all(itemId) as Row[];
+    return rows.map(toPreviousNumber);
+  }
+
+  /**
+   * Replace an item's previous numbers wholesale — the form always submits the
+   * complete list, so diffing individual rows would buy nothing.
+   *
+   * Writing `items.previous_numbers` in the same breath keeps the denormalised
+   * copy honest and fires the FTS update trigger, which is what makes the
+   * numbers searchable.
+   */
+  private replacePreviousNumbers(itemId: number, input: PreviousNumberInput[]): void {
+    const entries = normalisePreviousNumbers(input);
+
+    this.db.prepare('DELETE FROM item_previous_numbers WHERE item_id = ?').run(itemId);
+
+    const insert = this.db.prepare(
+      `INSERT INTO item_previous_numbers (item_id, value, note, order_index)
+       VALUES (?, ?, ?, ?)`,
+    );
+    entries.forEach((entry, index) => insert.run(itemId, entry.value, entry.note, index));
+
+    this.db
+      .prepare('UPDATE items SET previous_numbers = ? WHERE id = ?')
+      .run(entries.map((e) => e.value).join(PREV_SEPARATOR), itemId);
   }
 
   private bindItem(input: ItemInput): Record<string, unknown> {

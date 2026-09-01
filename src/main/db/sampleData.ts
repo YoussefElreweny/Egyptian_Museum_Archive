@@ -554,6 +554,25 @@ const DETAILS: Record<
   },
 };
 
+
+/**
+ * Previous numbers for a few of the example records, so the field is visible
+ * on a fresh install. Most records legitimately have none.
+ */
+const PREVIOUS_NUMBERS: Record<string, { value: string; note: string }[]> = {
+  manuscripts: [
+    { value: '١٢٤/ب', note: 'Old manuscripts register, 1932' },
+    { value: 'MS-0044', note: 'Assigned during the 1968 recataloguing' },
+    { value: '77-A', note: 'Conservation department card index' },
+  ],
+  'official-documents': [{ value: 'D-1954-233', note: 'Ministry file series' }],
+  photographs: [
+    { value: 'PH/71/015', note: 'Photographic unit log' },
+    { value: '4412', note: 'Previous registrar, undated' },
+  ],
+  artifacts: [{ value: 'JE 38392', note: 'Journal d\'Entrée' }],
+};
+
 const FALLBACK = {
   dateText: 'Undated',
   year: null as number | null,
@@ -603,6 +622,7 @@ export function seedSampleItems(db: Database.Database): void {
         const input: ItemInput = {
           typeId,
           accessionNo: '',
+          previousNumbers: PREVIOUS_NUMBERS[type.slug] ?? [],
           titleEn: type.exampleEn,
           titleAr: type.exampleAr,
           descriptionEn: `${type.exampleEn}. Catalogued under ${type.nameEn} within ${category.nameEn}. This is an example record supplied with the system; replace it with the department's own catalogue data.`,

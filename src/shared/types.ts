@@ -49,12 +49,33 @@ export interface ItemPhoto {
 
 export type ConditionGrade = 'excellent' | 'good' | 'fair' | 'poor' | 'critical';
 
+/**
+ * A number this object was catalogued under before the current system — an
+ * earlier register, a previous registrar's numbering, a transferred collection.
+ * A record can carry several, so they are kept as rows rather than one field.
+ */
+export interface PreviousNumber {
+  id: number;
+  itemId: number;
+  value: string;
+  /** Where the number came from, e.g. "Old register, 1975". */
+  note: string;
+  orderIndex: number;
+}
+
+/** What the form submits: the stored rows are replaced with this list. */
+export interface PreviousNumberInput {
+  value: string;
+  note: string;
+}
+
 /** A single catalogued object in the archive. */
 export interface ArchiveItem {
   id: number;
   typeId: number;
   /** Museum accession / registration number, unique across the archive. */
   accessionNo: string;
+  previousNumbers: PreviousNumberInput[];
   titleEn: string;
   titleAr: string;
   descriptionEn: string;
@@ -86,6 +107,10 @@ export interface ArchiveItem {
   createdAt: string;
   updatedAt: string;
   photos?: ItemPhoto[];
+  /** The stored rows, with ids; present on getItem, absent on list queries. */
+  previousNumberRows?: PreviousNumber[];
+  /** Denormalised "1234; 5678" copy, always present, used by lists and search. */
+  previousNumbersText: string;
   /** Denormalised for list and search screens. */
   primaryPhoto?: string | null;
   typeNameEn?: string;
@@ -104,6 +129,8 @@ export type ItemInput = Omit<
   | 'createdAt'
   | 'updatedAt'
   | 'photos'
+  | 'previousNumberRows'
+  | 'previousNumbersText'
   | 'primaryPhoto'
   | 'typeNameEn'
   | 'typeNameAr'

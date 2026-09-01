@@ -11,9 +11,13 @@ const { tmpdir } = require('node:os');
 const { join } = require('node:path');
 
 const Database = require('better-sqlite3');
-const { migrate, seedTaxonomy } = require('../dist/main/db/schema.js');
+const { migrate, seedTaxonomy, MIGRATIONS, SCHEMA_VERSION } = require('../dist/main/db/schema.js');
 const { seedSampleItems } = require('../dist/main/db/sampleData.js');
-const { ArchiveRepository, toFtsQuery } = require('../dist/main/db/repository.js');
+const {
+  ArchiveRepository,
+  toFtsQuery,
+  normalisePreviousNumbers,
+} = require('../dist/main/db/repository.js');
 const { TAXONOMY } = require('../dist/shared/taxonomy.js');
 
 const EXPECTED_TYPE_COUNT = TAXONOMY.reduce((sum, c) => sum + c.types.length, 0);
@@ -62,6 +66,7 @@ function baseItem(typeId, overrides = {}) {
     acquisitionDate: '',
     notesEn: '',
     notesAr: '',
+    previousNumbers: [],
     ...overrides,
   };
 }
@@ -439,6 +444,232 @@ test('a material type still in use cannot be deleted out from under its items', 
       () => ctx.db.prepare('DELETE FROM material_types WHERE id = ?').run(type.id),
       /FOREIGN KEY/i,
     );
+  } finally {
+    cleanup(ctx);
+  }
+});
+
+/* ------------------------------------------------------------------ *
+ * Previous numbers
+ * ------------------------------------------------------------------ */
+
+test('a record stores several previous numbers, in order, with their notes', () => {
+  const ctx = freshDb();
+  try {
+    const type = ctx.repo.getType('manuscripts');
+    const item = ctx.repo.createItem(
+      baseItem(type.id, {
+        previousNumbers: [
+          { value: '124/B', note: 'Old register, 1932' },
+          { value: 'MS-0044', note: '1968 recataloguing' },
+          { value: '77-A', note: '' },
+        ],
+      }),
+    );
+
+    const rows = ctx.repo.getItem(item.id).previousNumberRows;
+    assert.equal(rows.length, 3);
+    assert.deepEqual(
+      rows.map((r) => r.value),
+      ['124/B', 'MS-0044', '77-A'],
+      'order is preserved',
+    );
+    assert.equal(rows[0].note, 'Old register, 1932');
+    assert.equal(rows[2].note, '');
+  } finally {
+    cleanup(ctx);
+  }
+});
+
+test('blank rows submitted by the form are discarded', () => {
+  assert.deepEqual(normalisePreviousNumbers([]), []);
+  assert.deepEqual(
+    normalisePreviousNumbers([
+      { value: '  A-1  ', note: '  note  ' },
+      { value: '   ', note: 'orphan note' },
+      { value: '', note: '' },
+    ]),
+    [{ value: 'A-1', note: 'note' }],
+  );
+});
+
+test('editing a record replaces its previous numbers wholesale', () => {
+  const ctx = freshDb();
+  try {
+    const type = ctx.repo.getType('books');
+    const item = ctx.repo.createItem(
+      baseItem(type.id, { previousNumbers: [{ value: 'OLD-1', note: '' }] }),
+    );
+
+    ctx.repo.updateItem(
+      item.id,
+      baseItem(type.id, {
+        accessionNo: item.accessionNo,
+        previousNumbers: [
+          { value: 'NEW-1', note: '' },
+          { value: 'NEW-2', note: '' },
+        ],
+      }),
+    );
+
+    const rows = ctx.repo.getItem(item.id).previousNumberRows;
+    assert.deepEqual(
+      rows.map((r) => r.value),
+      ['NEW-1', 'NEW-2'],
+    );
+
+    // Clearing the list removes every row.
+    ctx.repo.updateItem(
+      item.id,
+      baseItem(type.id, { accessionNo: item.accessionNo, previousNumbers: [] }),
+    );
+    assert.equal(ctx.repo.getItem(item.id).previousNumberRows.length, 0);
+    assert.equal(ctx.repo.getItem(item.id).previousNumbersText, '');
+  } finally {
+    cleanup(ctx);
+  }
+});
+
+test('previous numbers are searchable, and stop matching once removed', () => {
+  const ctx = freshDb();
+  try {
+    const type = ctx.repo.getType('maps');
+    const item = ctx.repo.createItem(
+      baseItem(type.id, {
+        titleEn: 'Site plan',
+        previousNumbers: [{ value: 'JE-38392', note: '' }],
+      }),
+    );
+
+    assert.equal(ctx.repo.listItems({ search: 'JE-38392' }).total, 1);
+    assert.equal(ctx.repo.listItems({ search: '38392' }).total, 1, 'segment matches');
+
+    ctx.repo.updateItem(
+      item.id,
+      baseItem(type.id, { accessionNo: item.accessionNo, previousNumbers: [] }),
+    );
+    assert.equal(ctx.repo.listItems({ search: '38392' }).total, 0, 'index follows the edit');
+  } finally {
+    cleanup(ctx);
+  }
+});
+
+test('deleting a record removes its previous numbers', () => {
+  const ctx = freshDb();
+  try {
+    const type = ctx.repo.getType('books');
+    const item = ctx.repo.createItem(
+      baseItem(type.id, { previousNumbers: [{ value: 'X-1', note: '' }] }),
+    );
+
+    ctx.repo.deleteItem(item.id);
+    assert.equal(ctx.repo.listPreviousNumbers(item.id).length, 0);
+  } finally {
+    cleanup(ctx);
+  }
+});
+
+test('the denormalised text column matches the stored rows', () => {
+  const ctx = freshDb();
+  try {
+    const type = ctx.repo.getType('books');
+    const item = ctx.repo.createItem(
+      baseItem(type.id, {
+        previousNumbers: [
+          { value: 'A-1', note: '' },
+          { value: 'B-2', note: '' },
+        ],
+      }),
+    );
+
+    assert.equal(ctx.repo.getItem(item.id).previousNumbersText, 'A-1; B-2');
+    assert.equal(ctx.repo.listItems({ typeId: type.id }).rows[0].previousNumbersText, 'A-1; B-2');
+  } finally {
+    cleanup(ctx);
+  }
+});
+
+/* ------------------------------------------------------------------ *
+ * Upgrading an existing installation
+ * ------------------------------------------------------------------ */
+
+test('upgrading a v1 database keeps every record, photo and search result', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'archive-upgrade-'));
+  const db = new Database(join(dir, 'test.db'));
+
+  try {
+    // Build a database exactly as the previously shipped version left it.
+    db.pragma('journal_mode = WAL');
+    db.pragma('foreign_keys = ON');
+    db.exec(MIGRATIONS[0].sql);
+    db.pragma('user_version = 1');
+    seedTaxonomy(db);
+
+    const before = new ArchiveRepository(db);
+    const type = before.getType('manuscripts');
+
+    // Written with raw SQL against the v1 columns, the way the previously
+    // shipped build would have written it — the current repository knows about
+    // tables that do not exist yet at this point.
+    const insert = db
+      .prepare(
+        `INSERT INTO items (type_id, accession_no, title_en, title_ar, condition, quantity)
+         VALUES (?, ?, ?, ?, 'good', 1)`,
+      )
+      .run(type.id, 'PM-MANUSCRIPTS-0001', 'Cataloguing done before the update', 'سجل قديم');
+
+    const keptId = Number(insert.lastInsertRowid);
+    before.addPhoto(keptId, 'existing.jpg');
+    before.setSetting('samples_seeded', '1');
+
+    assert.equal(db.pragma('user_version', { simple: true }), 1);
+    assert.equal(before.listItems({ search: 'Cataloguing' }).total, 1, 'searchable before');
+
+    // Now run the shipped migration path, as launching the new build would.
+    migrate(db);
+    seedTaxonomy(db);
+
+    assert.equal(db.pragma('user_version', { simple: true }), SCHEMA_VERSION);
+
+    const after = new ArchiveRepository(db);
+    const item = after.getItem(keptId);
+
+    assert.ok(item, 'the record survived the upgrade');
+    assert.equal(item.titleEn, 'Cataloguing done before the update');
+    assert.equal(item.titleAr, 'سجل قديم');
+    assert.equal(item.accessionNo, 'PM-MANUSCRIPTS-0001');
+    assert.equal(item.photos.length, 1, 'its photograph survived');
+    assert.equal(item.photos[0].fileName, 'existing.jpg');
+    assert.deepEqual(item.previousNumberRows, [], 'the new field starts empty');
+
+    // The rebuilt full-text index still finds pre-existing records...
+    assert.equal(after.listItems({ search: 'Cataloguing' }).total, 1);
+    assert.equal(after.listItems({ search: 'سجل' }).total, 1);
+
+    // ...and the new field works on the upgraded database.
+    after.updateItem(
+      keptId,
+      baseItem(type.id, {
+        accessionNo: 'PM-MANUSCRIPTS-0001',
+        titleEn: 'Cataloguing done before the update',
+        previousNumbers: [{ value: 'LEGACY-9', note: 'From the old paper register' }],
+      }),
+    );
+    assert.equal(after.listItems({ search: 'LEGACY-9' }).total, 1);
+  } finally {
+    db.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('migrating an already-current database changes nothing', () => {
+  const ctx = freshDb({ withSamples: true });
+  try {
+    const before = ctx.repo.stats().totalItems;
+    migrate(ctx.db);
+    migrate(ctx.db);
+    assert.equal(ctx.repo.stats().totalItems, before);
+    assert.equal(ctx.db.pragma('user_version', { simple: true }), SCHEMA_VERSION);
   } finally {
     cleanup(ctx);
   }

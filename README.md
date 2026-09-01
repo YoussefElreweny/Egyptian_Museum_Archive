@@ -55,8 +55,12 @@ orphaned by an edit to the taxonomy.
 - **Accession numbers.** Generated per material type in the form
   `PM-MANUSCRIPTS-0001`, or entered by hand when the department already has a
   number for the object.
-- **Search.** SQLite FTS5 across titles, descriptions, creators, origins, notes
-  and accession numbers, in both languages, with prefix matching.
+- **Previous numbers.** A record can carry any number of earlier catalogue
+  numbers, each with a note saying where it came from ("Old register, 1932").
+  They are searchable, shown in the record list, and included in CSV exports.
+- **Search.** SQLite FTS5 across titles, descriptions, creators, origins, notes,
+  accession numbers and previous numbers, in both languages, with prefix
+  matching.
 - **Export and backup.** Any filtered list exports to CSV (UTF-8 with BOM, so
   Excel on Windows renders Arabic correctly), and the database can be backed up
   to a single file at any time.
@@ -98,6 +102,23 @@ request that tries to escape it with `..` gets a 403.
 **Search input** is escaped before it reaches FTS5: each token is quoted and
 given a prefix wildcard, so characters with meaning in FTS syntax (`"`, `*`,
 `NEAR`, `-`) are treated as literal text and can't produce a syntax error.
+
+## Updating an installed copy
+
+The database lives outside the application, so installing a newer build over an
+older one keeps every record and photograph. Schema changes are handled by
+numbered migrations in `src/main/db/schema.ts`: on launch the app compares the
+database's `user_version` against the migrations it ships with and applies only
+the missing ones, inside a transaction each.
+
+Adding the previous-numbers field, for instance, was migration 2 — an existing
+v1 database gains the new table and a rebuilt search index without losing
+anything. That path is covered by a test (*"upgrading a v1 database keeps every
+record, photo and search result"*), so the guarantee is checked rather than
+assumed.
+
+Advise the department to use **Back up database** before an update anyway. It is
+one click and copies the whole catalogue to a file of their choosing.
 
 ## Data location
 

@@ -43,6 +43,7 @@ function csvCell(value: unknown): string {
 function itemsToCsv(rows: ArchiveItem[]): string {
   const headers = [
     'Accession No',
+    'Previous No.',
     'Title (EN)',
     'Title (AR)',
     'Category (EN)',
@@ -82,6 +83,7 @@ function itemsToCsv(rows: ArchiveItem[]): string {
     lines.push(
       [
         r.accessionNo,
+        r.previousNumbersText,
         r.titleEn,
         r.titleAr,
         r.categoryNameEn,

@@ -27,6 +27,30 @@ function Bilingual({ primary, secondary }: { primary: string; secondary: string 
   );
 }
 
+
+/** The record's earlier numbers, each with the note explaining where it came from. */
+function PreviousNumbers({ item }: { item: ArchiveItem }) {
+  const { t } = useLang();
+  const rows = item.previousNumberRows ?? [];
+
+  if (rows.length === 0) {
+    return <span className="text-sand-400">{t('field.previousNoNone')}</span>;
+  }
+
+  return (
+    <ul className="space-y-1.5">
+      {rows.map((row) => (
+        <li key={row.id} className="flex flex-wrap items-baseline gap-x-2">
+          <bdi className="rounded bg-sand-100 px-1.5 py-0.5 font-mono text-sm text-sand-900">
+            {row.value}
+          </bdi>
+          {row.note && <bdi className="text-xs text-sand-500">{row.note}</bdi>}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export default function ItemPage() {
   const { itemId = '' } = useParams();
   const { t, pick, lang } = useLang();
@@ -147,6 +171,7 @@ export default function ItemPage() {
           <SectionCard title={t('item.identification')}>
             <dl className="space-y-4">
               <Field label={t('field.accessionNo')} value={<span className="font-mono">{item.accessionNo}</span>} />
+              <Field label={t('field.previousNos')} value={<PreviousNumbers item={item} />} />
               <Field label={t('field.category')} value={pick(item.categoryNameEn, item.categoryNameAr)} />
               <Field label={t('field.type')} value={pick(item.typeNameEn, item.typeNameAr)} />
               <Field

@@ -181,7 +181,7 @@ export default function TypePage() {
           ) : (
             <div className="card overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[900px] text-sm">
+                <table className="w-full min-w-[1040px] text-sm">
                   <thead>
                     <tr className="border-b border-sand-200 bg-sand-50 text-start">
                       <th className="w-16 px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-sand-600">
@@ -192,6 +192,9 @@ export default function TypePage() {
                       </th>
                       <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-sand-600">
                         {t('table.accession')}
+                      </th>
+                      <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-sand-600">
+                        {t('field.previousNo')}
                       </th>
                       <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-sand-600">
                         {t('table.title')}
@@ -231,6 +234,9 @@ export default function TypePage() {
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-sand-700">
                           <bdi>{item.accessionNo}</bdi>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-sand-600">
+                          <bdi>{item.previousNumbersText || '—'}</bdi>
                         </td>
                         <td className="px-4 py-3">
                           <Link

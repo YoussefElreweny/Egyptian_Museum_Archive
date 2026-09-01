@@ -5,7 +5,7 @@ import { TAXONOMY } from '../../shared/taxonomy';
  * Schema version. Bump when adding a migration below; `migrate()` replays
  * every migration whose version exceeds the database's current user_version.
  */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 const V1 = `
 CREATE TABLE IF NOT EXISTS categories (
@@ -123,7 +123,79 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 `;
 
-const MIGRATIONS: { version: number; sql: string }[] = [{ version: 1, sql: V1 }];
+/**
+ * Adds the previous numbers an item carried under earlier cataloguing systems.
+ *
+ * They live in their own table because a record can carry several, each from a
+ * different era or registrar. `items.previous_numbers` is a denormalised copy
+ * of the same values, maintained by the repository, so the existing full-text
+ * index over `items` can search them — the FTS table is rebuilt here to pick
+ * up the new column.
+ */
+const V2 = `
+ALTER TABLE items ADD COLUMN previous_numbers TEXT NOT NULL DEFAULT '';
+
+CREATE TABLE IF NOT EXISTS item_previous_numbers (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  item_id     INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+  value       TEXT NOT NULL,
+  note        TEXT NOT NULL DEFAULT '',
+  order_index INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_prev_numbers_item ON item_previous_numbers(item_id);
+
+DROP TRIGGER IF EXISTS items_fts_ai;
+DROP TRIGGER IF EXISTS items_fts_ad;
+DROP TRIGGER IF EXISTS items_fts_au;
+DROP TABLE IF EXISTS items_fts;
+
+CREATE VIRTUAL TABLE items_fts USING fts5(
+  accession_no, previous_numbers, title_en, title_ar, description_en, description_ar,
+  creator_en, creator_ar, origin_en, origin_ar, notes_en, notes_ar,
+  content='items', content_rowid='id', tokenize='unicode61 remove_diacritics 2'
+);
+
+CREATE TRIGGER items_fts_ai AFTER INSERT ON items BEGIN
+  INSERT INTO items_fts(rowid, accession_no, previous_numbers, title_en, title_ar,
+    description_en, description_ar, creator_en, creator_ar, origin_en, origin_ar,
+    notes_en, notes_ar)
+  VALUES (new.id, new.accession_no, new.previous_numbers, new.title_en, new.title_ar,
+    new.description_en, new.description_ar, new.creator_en, new.creator_ar,
+    new.origin_en, new.origin_ar, new.notes_en, new.notes_ar);
+END;
+
+CREATE TRIGGER items_fts_ad AFTER DELETE ON items BEGIN
+  INSERT INTO items_fts(items_fts, rowid, accession_no, previous_numbers, title_en,
+    title_ar, description_en, description_ar, creator_en, creator_ar, origin_en,
+    origin_ar, notes_en, notes_ar)
+  VALUES ('delete', old.id, old.accession_no, old.previous_numbers, old.title_en,
+    old.title_ar, old.description_en, old.description_ar, old.creator_en,
+    old.creator_ar, old.origin_en, old.origin_ar, old.notes_en, old.notes_ar);
+END;
+
+CREATE TRIGGER items_fts_au AFTER UPDATE ON items BEGIN
+  INSERT INTO items_fts(items_fts, rowid, accession_no, previous_numbers, title_en,
+    title_ar, description_en, description_ar, creator_en, creator_ar, origin_en,
+    origin_ar, notes_en, notes_ar)
+  VALUES ('delete', old.id, old.accession_no, old.previous_numbers, old.title_en,
+    old.title_ar, old.description_en, old.description_ar, old.creator_en,
+    old.creator_ar, old.origin_en, old.origin_ar, old.notes_en, old.notes_ar);
+  INSERT INTO items_fts(rowid, accession_no, previous_numbers, title_en, title_ar,
+    description_en, description_ar, creator_en, creator_ar, origin_en, origin_ar,
+    notes_en, notes_ar)
+  VALUES (new.id, new.accession_no, new.previous_numbers, new.title_en, new.title_ar,
+    new.description_en, new.description_ar, new.creator_en, new.creator_ar,
+    new.origin_en, new.origin_ar, new.notes_en, new.notes_ar);
+END;
+
+INSERT INTO items_fts(items_fts) VALUES('rebuild');
+`;
+
+export const MIGRATIONS: { version: number; sql: string }[] = [
+  { version: 1, sql: V1 },
+  { version: 2, sql: V2 },
+];
 
 export function migrate(db: Database.Database): void {
   db.pragma('journal_mode = WAL');
@@ -133,8 +205,17 @@ export function migrate(db: Database.Database): void {
 
   for (const { version, sql } of MIGRATIONS) {
     if (version > current) {
-      db.exec(sql);
-      db.pragma(`user_version = ${version}`);
+      // One transaction per migration: a half-applied V2 would leave the
+      // database without a search index.
+      db.exec('BEGIN');
+      try {
+        db.exec(sql);
+        db.pragma(`user_version = ${version}`);
+        db.exec('COMMIT');
+      } catch (error) {
+        db.exec('ROLLBACK');
+        throw error;
+      }
     }
   }
 }

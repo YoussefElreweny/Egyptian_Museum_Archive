@@ -2,12 +2,20 @@ import { useEffect, useState } from 'react';
 import { CONDITIONS, Modal } from './ui';
 import { useToast } from './Toast';
 import { useLang } from '../i18n/LanguageContext';
-import type { ArchiveItem, Category, ConditionGrade, ItemInput, MaterialType } from '@shared/types';
+import type {
+  ArchiveItem,
+  Category,
+  ConditionGrade,
+  ItemInput,
+  MaterialType,
+  PreviousNumberInput,
+} from '@shared/types';
 import type { TranslationKey } from '../i18n/translations';
 
 const EMPTY: ItemInput = {
   typeId: 0,
   accessionNo: '',
+  previousNumbers: [],
   titleEn: '',
   titleAr: '',
   descriptionEn: '',
@@ -40,6 +48,10 @@ function toInput(item: ArchiveItem): ItemInput {
   return {
     typeId: rest.typeId,
     accessionNo: rest.accessionNo,
+    previousNumbers: (rest.previousNumberRows ?? []).map((p) => ({
+      value: p.value,
+      note: p.note,
+    })),
     titleEn: rest.titleEn,
     titleAr: rest.titleAr,
     descriptionEn: rest.descriptionEn,
@@ -116,6 +128,74 @@ function BilingualField({
           <span className="mt-1 block text-[11px] text-sand-500">{t('field.arabic')}</span>
         </div>
       </div>
+    </fieldset>
+  );
+}
+
+
+/**
+ * Repeatable editor for the numbers a record carried under earlier cataloguing
+ * systems. Rows are positional, so edits and removals address them by index.
+ */
+function PreviousNumbersField({
+  rows,
+  onChange,
+}: {
+  rows: PreviousNumberInput[];
+  onChange: (rows: PreviousNumberInput[]) => void;
+}) {
+  const { t } = useLang();
+
+  const update = (index: number, patch: Partial<PreviousNumberInput>) =>
+    onChange(rows.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+
+  const remove = (index: number) => onChange(rows.filter((_, i) => i !== index));
+  const add = () => onChange([...rows, { value: '', note: '' }]);
+
+  return (
+    <fieldset className="sm:col-span-2">
+      <legend className="label">{t('field.previousNos')}</legend>
+      <p className="mb-2 text-xs text-sand-500">{t('field.previousNoHint')}</p>
+
+      {rows.length > 0 && (
+        <div className="mb-2 space-y-2">
+          {rows.map((row, index) => (
+            <div key={index} className="flex items-start gap-2">
+              <input
+                className="input font-mono sm:w-48"
+                dir="auto"
+                value={row.value}
+                placeholder={t('field.previousNoValue')}
+                aria-label={`${t('field.previousNoValue')} ${index + 1}`}
+                onChange={(e) => update(index, { value: e.target.value })}
+              />
+              <input
+                className="input flex-1"
+                dir="auto"
+                value={row.note}
+                placeholder={t('field.previousNoNote')}
+                aria-label={`${t('field.previousNoNote')} ${index + 1}`}
+                onChange={(e) => update(index, { note: e.target.value })}
+              />
+              <button
+                type="button"
+                onClick={() => remove(index)}
+                aria-label={t('action.removeRow')}
+                title={t('action.removeRow')}
+                className="mt-1 rounded-lg p-2 text-sand-500 transition hover:bg-red-50 hover:text-red-700"
+              >
+                <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <button type="button" onClick={add} className="btn-secondary py-1.5 text-xs">
+        <span aria-hidden="true">+</span> {t('action.addPreviousNo')}
+      </button>
     </fieldset>
   );
 }
@@ -283,6 +363,11 @@ export function ItemForm({
                 onChange={(e) => set('accessionNo', e.target.value)}
               />
             </div>
+
+            <PreviousNumbersField
+              rows={form.previousNumbers}
+              onChange={(rows) => set('previousNumbers', rows)}
+            />
 
             <BilingualField
               label={`${t('field.title')} *`}
