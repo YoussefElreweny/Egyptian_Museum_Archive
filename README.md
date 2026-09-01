@@ -195,11 +195,20 @@ npm run build      # compile main, preload and renderer into dist/
 | `npm run dist:linux` | `release/Egyptian Museum Archive-1.0.0.AppImage` | Linux |
 
 The department runs macOS. A `.dmg` runs only on the architecture it was built
-for — an Apple Silicon build will not open on an Intel Mac — so the release
-workflow builds both from the one Apple Silicon runner via `npm run dist:mac:all`.
+for, so the release workflow builds both — `dist:mac:arm64` and `dist:mac:x64`
+— as **separate jobs** on the Apple Silicon runner.
 
-It does **not** use GitHub's `macos-13` Intel runners: those have been retired,
-and a job requesting one is never assigned a machine. It stays queued
+Separate jobs matter. `npm install` compiles better-sqlite3 for the machine
+doing the build, and packaging both architectures from a single invocation
+reuses that one binary: the Intel `.dmg` shipped with an arm64 module inside it
+and died on launch with an "incompatible architecture" error, while packaging
+and installing without complaint. Each job now runs
+`electron-builder install-app-deps --arch=<arch>` first, and a step afterwards
+runs `file` over the packaged `better_sqlite3.node` and fails the build unless
+it is the expected architecture.
+
+The workflow does **not** use GitHub's `macos-13` Intel runners: those have been
+retired, and a job requesting one is never assigned a machine. It stays queued
 indefinitely instead of failing, which silently blocks the release job.
 
 Each target must be built on its own platform: electron-builder needs the

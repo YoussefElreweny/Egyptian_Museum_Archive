@@ -18,18 +18,28 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # macOS is the department's platform, and both architectures are built
-          # from the one Apple Silicon runner. GitHub has retired its Intel
-          # macOS runners, so a job asking for macos-13 is never given a machine
-          # — it sits queued indefinitely rather than failing.
+          # macOS is the department's platform. Each architecture is a separate
+          # job so it can rebuild the native SQLite module for its own target:
+          # packaging both from one invocation reuses whatever node_modules
+          # holds, which put an arm64 binary inside the Intel app.
+          #
+          # GitHub's Intel macOS runners have been retired, so both are built on
+          # the Apple Silicon runner and the x64 module is cross-compiled.
           - os: macos-latest
-            target: dist:mac:all
-            artifact: macos-installers
+            target: dist:mac:arm64
+            artifact: macos-apple-silicon
             pattern: 'release/*.dmg'
+            expect_arch: arm64
+          - os: macos-latest
+            target: dist:mac:x64
+            artifact: macos-intel
+            pattern: 'release/*.dmg'
+            expect_arch: x86_64
           - os: windows-latest
             target: dist:win
             artifact: windows-installer
             pattern: 'release/*.exe'
+            expect_arch: ''
 
     runs-on: ${{ matrix.os }}
 
@@ -41,8 +51,6 @@ jobs:
           node-version: 22
           cache: npm
 
-      # `npm ci` runs the postinstall that rebuilds better-sqlite3 against
-      # Electron's ABI for this runner's platform.
       - name: Install dependencies
         run: npm ci
 
@@ -53,9 +61,28 @@ jobs:
         run: npm test
 
       - name: Build installer
-        # The dist scripts pass --publish never, and no token is exposed here,
-        # so electron-builder cannot publish behind the release job's back.
         run: npm run ${{ matrix.target }}
+
+      # The failure this guards against is silent: the app packages and the
+      # installer opens, then the application dies on launch because its native
+      # module is built for the wrong architecture. Check the binary itself
+      # rather than trusting the build flags.
+      - name: Verify native module architecture
+        if: runner.os == 'macOS'
+        run: |
+          set -euo pipefail
+          binary=$(find release -name 'better_sqlite3.node' -not -path '*/node_modules/.cache/*' | head -1)
+          if [ -z "$binary" ]; then
+            echo "::error::better_sqlite3.node not found in the packaged app"
+            exit 1
+          fi
+          echo "Found: $binary"
+          file "$binary"
+          if ! file "$binary" | grep -q '${{ matrix.expect_arch }}'; then
+            echo "::error::Expected ${{ matrix.expect_arch }} but the packaged module is a different architecture"
+            exit 1
+          fi
+          echo "Architecture is ${{ matrix.expect_arch }} as expected."
 
       - uses: actions/upload-artifact@v4
         with:
